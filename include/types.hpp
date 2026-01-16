@@ -1,10 +1,12 @@
 #pragma once
 #include <atomic>
-#include <cmath>
 #include <cstdint>
+#include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <string_view>
+#include <vector>
 
 enum class MarketType : uint8_t { SPOT = 0, UM_PERP, CM_PERP };
 
@@ -92,14 +94,101 @@ struct PriceData {
   }
 };
 
+struct PriceLevel {
+  std::string price;
+  std::string quantity;
+};
+
+struct BidComparator {
+  bool operator()(const std::string &a, const std::string &b) const {
+    return std::stod(a) > std::stod(b);
+  }
+};
+
+struct AskComparator {
+  bool operator()(const std::string &a, const std::string &b) const {
+    return std::stod(a) < std::stod(b);
+  }
+};
+
+class OrderBook {
+public:
+  OrderBook() : last_update_id_(0) {}
+
+  void update_from_depth(const std::vector<PriceLevel> &bids,
+                         const std::vector<PriceLevel> &asks) {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    for (const auto &level : bids) {
+      if (level.quantity == "0" || level.quantity == "0.00000000") {
+        bids_.erase(level.price);
+      } else {
+        bids_[level.price] = level.quantity;
+      }
+    }
+
+    for (const auto &level : asks) {
+      if (level.quantity == "0" || level.quantity == "0.00000000") {
+        asks_.erase(level.price);
+      } else {
+        asks_[level.price] = level.quantity;
+      }
+    }
+
+    ++last_update_id_;
+  }
+
+  struct BookSnapshot {
+    std::vector<std::pair<double, double>> bids;
+    std::vector<std::pair<double, double>> asks;
+    double mid_price;
+    double spread;
+  };
+
+  BookSnapshot get_snapshot(size_t depth = 10) const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    BookSnapshot snap;
+
+    auto bid_it = bids_.begin();
+    for (size_t i = 0; i < depth && bid_it != bids_.end(); ++i, ++bid_it) {
+      snap.bids.push_back(
+          {std::stod(bid_it->first), std::stod(bid_it->second)});
+    }
+
+    auto ask_it = asks_.begin();
+    for (size_t i = 0; i < depth && ask_it != asks_.end(); ++i, ++ask_it) {
+      snap.asks.push_back(
+          {std::stod(ask_it->first), std::stod(ask_it->second)});
+    }
+
+    if (!bids_.empty() && !asks_.empty()) {
+      double best_bid = std::stod(bids_.begin()->first);
+      double best_ask = std::stod(asks_.begin()->first);
+      snap.mid_price = (best_bid + best_ask) / 2.0;
+      snap.spread = best_ask - best_bid;
+    } else {
+      snap.mid_price = 0.0;
+      snap.spread = 0.0;
+    }
+
+    return snap;
+  }
+
+private:
+  std::map<std::string, std::string, BidComparator> bids_;
+  std::map<std::string, std::string, AskComparator> asks_;
+  uint64_t last_update_id_;
+  mutable std::mutex mutex_;
+};
+
 struct Leg {
   MarketType market;
   std::string symbol;
   PriceData price_data;
+  std::shared_ptr<OrderBook> orderbook;
 };
 
 // LegRef is used to point to actual leg data.
-// Allows for single ws connection with multiple readers.
 struct LegRef {
   MarketType market;
   std::string symbol;
@@ -149,4 +238,9 @@ struct BookTicker {
   double bid_price;
   double ask_price;
   int64_t timestamp;
+};
+
+struct OrderBookConfig {
+  MarketType market;
+  std::string symbol;
 };

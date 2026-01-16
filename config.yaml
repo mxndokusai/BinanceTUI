@@ -1,0 +1,561 @@
+refresh_rate_ms: 100
+display_tui: true
+# spreads | orderbook
+view_mode: spreads
+
+spreads:
+  - name: DOGEUSDT_DOGEUSD_PERP
+    leg1:
+      market: CM_FUTURES
+      symbol: DOGEUSD_PERP
+      beta: -1
+    leg2:
+      market: SPOT
+      symbol: DOGEUSDT
+      beta: 1
+  - name: BTCUSDC_BTCUSDT
+    leg1:
+      market: SPOT
+      symbol: BTCUSDC
+      beta: -1
+    leg2:
+      market: SPOT
+      symbol: BTCUSDT
+      beta: 1
+
+  - name: LINKUSDT_LINKUSDC
+    leg1:
+      market: SPOT
+      symbol: LINKUSDT
+      beta: -1
+    leg2:
+      market: SPOT
+      symbol: LINKUSDC
+      beta: 1
+
+  - name: ARBUSDT_ARBUSDC
+    leg1:
+      market: SPOT
+      symbol: ARBUSDT
+      beta: -1
+    leg2:
+      market: SPOT
+      symbol: ARBUSDC
+      beta: 1
+
+  - name: UNIUSDC_UNIUSDT
+    leg1:
+      market: SPOT
+      symbol: UNIUSDC
+      beta: -1
+    leg2:
+      market: SPOT
+      symbol: UNIUSDT
+      beta: 1
+
+  - name: HBARUSDT_HBARUSDC
+    leg1:
+      market: SPOT
+      symbol: HBARUSDT
+      beta: -1
+    leg2:
+      market: SPOT
+      symbol: HBARUSDC
+      beta: 1
+
+  - name: AAVEUSDT_AAVEUSDC
+    leg1:
+      market: SPOT
+      symbol: AAVEUSDT
+      beta: -1
+    leg2:
+      market: SPOT
+      symbol: AAVEUSDC
+      beta: 1
+
+  - name: BNSOLSOL_BNSOLSOL
+    leg1:
+      market: SPOT
+      symbol: BNSOLSOL
+      beta: 1
+    leg2:
+      market: SPOT
+      symbol: BNSOLSOL
+      beta: 0
+
+  - name: ETHUSDC_ETHUSDT
+    leg1:
+      market: SPOT
+      symbol: ETHUSDC
+      beta: -1
+    leg2:
+      market: SPOT
+      symbol: ETHUSDT
+      beta: 1
+
+  - name: SUIUSDT_SUIUSDC
+    leg1:
+      market: SPOT
+      symbol: SUIUSDT
+      beta: -1
+    leg2:
+      market: SPOT
+      symbol: SUIUSDC
+      beta: 1
+
+  - name: LTCUSDC_LTCUSDT
+    leg1:
+      market: SPOT
+      symbol: LTCUSDC
+      beta: -1
+    leg2:
+      market: SPOT
+      symbol: LTCUSDT
+      beta: 1
+
+  - name: AVAXUSDC_AVAXUSDT
+    leg1:
+      market: SPOT
+      symbol: AVAXUSDC
+      beta: -1
+    leg2:
+      market: SPOT
+      symbol: AVAXUSDT
+      beta: 1
+
+  - name: DOGEUSDT_DOGEUSDC
+    leg1:
+      market: SPOT
+      symbol: DOGEUSDT
+      beta: -1
+    leg2:
+      market: SPOT
+      symbol: DOGEUSDC
+      beta: 1
+
+  - name: XRPUSDC_XRPUSDT
+    leg1:
+      market: SPOT
+      symbol: XRPUSDC
+      beta: -1
+    leg2:
+      market: SPOT
+      symbol: XRPUSDT
+      beta: 1
+
+  - name: ADAUSDT_ADAUSDC
+    leg1:
+      market: SPOT
+      symbol: ADAUSDT
+      beta: -1
+    leg2:
+      market: SPOT
+      symbol: ADAUSDC
+      beta: 1
+
+  - name: DOGEUSDT_DOGEUSD_PERP
+    leg1:
+      market: SPOT
+      symbol: DOGEUSDT
+      beta: -1
+    leg2:
+      market: CM_FUTURES
+      symbol: DOGEUSD_PERP
+      beta: 1
+
+  - name: ETHUSDT_ETHUSD_PERP
+    leg1:
+      market: SPOT
+      symbol: ETHUSDT
+      beta: -1
+    leg2:
+      market: CM_FUTURES
+      symbol: ETHUSD_PERP
+      beta: 1
+
+  - name: BTCUSDT_BTCUSD_PERP
+    leg1:
+      market: SPOT
+      symbol: BTCUSDT
+      beta: -1
+    leg2:
+      market: CM_FUTURES
+      symbol: BTCUSD_PERP
+      beta: 1
+
+  - name: BCHUSDT_BCHUSD_PERP
+    leg1:
+      market: SPOT
+      symbol: BCHUSDT
+      beta: -1
+    leg2:
+      market: CM_FUTURES
+      symbol: BCHUSD_PERP
+      beta: 1
+
+  - name: BNBUSDC_BNBUSD_PERP
+    leg1:
+      market: SPOT
+      symbol: BNBUSDC
+      beta: -1
+    leg2:
+      market: CM_FUTURES
+      symbol: BNBUSD_PERP
+      beta: 1
+
+  - name: XRPUSDT_XRPUSDC
+    leg1:
+      market: SPOT
+      symbol: XRPUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: XRPUSDC
+      beta: 1
+
+  - name: LTCUSDT_LTCUSDC
+    leg1:
+      market: SPOT
+      symbol: LTCUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: LTCUSDC
+      beta: 1
+
+  - name: BNBUSDC_BNBUSDC
+    leg1:
+      market: SPOT
+      symbol: BNBUSDC
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: BNBUSDC
+      beta: 1
+
+  - name: DOGEUSDT_DOGEUSDC
+    leg1:
+      market: SPOT
+      symbol: DOGEUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: DOGEUSDC
+      beta: 1
+
+  - name: BCHUSDC_BCHUSDT
+    leg1:
+      market: SPOT
+      symbol: BCHUSDC
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: BCHUSDT
+      beta: 1
+
+  - name: BCHUSDT_BCHUSDT
+    leg1:
+      market: SPOT
+      symbol: BCHUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: BCHUSDT
+      beta: 1
+
+  - name: ROSEUSDT_ROSEUSDT
+    leg1:
+      market: SPOT
+      symbol: ROSEUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: ROSEUSDT
+      beta: 1
+
+  - name: BELUSDT_BELUSDT
+    leg1:
+      market: SPOT
+      symbol: BELUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: BELUSDT
+      beta: 1
+
+  - name: ICXUSDT_ICXUSDT
+    leg1:
+      market: SPOT
+      symbol: ICXUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: ICXUSDT
+      beta: 1
+
+  - name: CELRUSDT_CELRUSDT
+    leg1:
+      market: SPOT
+      symbol: CELRUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: CELRUSDT
+      beta: 1
+
+  - name: BICOUSDT_BICOUSDT
+    leg1:
+      market: SPOT
+      symbol: BICOUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: BICOUSDT
+      beta: 1
+
+  - name: SFPUSDT_SFPUSDT
+    leg1:
+      market: SPOT
+      symbol: SFPUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: SFPUSDT
+      beta: 1
+
+  - name: ALICEUSDT_ALICEUSDT
+    leg1:
+      market: SPOT
+      symbol: ALICEUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: ALICEUSDT
+      beta: 1
+
+  - name: ORDIUSDC_ORDIUSDT
+    leg1:
+      market: UM_FUTURES
+      symbol: ORDIUSDC
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: ORDIUSDT
+      beta: 1
+
+  - name: BIOUSDT_BIOUSDC
+    leg1:
+      market: UM_FUTURES
+      symbol: BIOUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: BIOUSDC
+      beta: 1
+
+  - name: KAITOUSDT_KAITOUSDC
+    leg1:
+      market: UM_FUTURES
+      symbol: KAITOUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: KAITOUSDC
+      beta: 1
+
+  - name: ENAUSDT_ENAUSDC
+    leg1:
+      market: UM_FUTURES
+      symbol: ENAUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: ENAUSDC
+      beta: 1
+
+  - name: TIAUSDT_TIAUSDC
+    leg1:
+      market: UM_FUTURES
+      symbol: TIAUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: TIAUSDC
+      beta: 1
+
+  - name: WIFUSDC_WIFUSDT
+    leg1:
+      market: UM_FUTURES
+      symbol: WIFUSDC
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: WIFUSDT
+      beta: 1
+
+  - name: WLFIUSDT_WLFIUSDC
+    leg1:
+      market: UM_FUTURES
+      symbol: WLFIUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: WLFIUSDC
+      beta: 1
+
+  - name: PNUTUSDT_PNUTUSDC
+    leg1:
+      market: UM_FUTURES
+      symbol: PNUTUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: PNUTUSDC
+      beta: 1
+
+  - name: FILUSDC_FILUSD_PERP
+    leg1:
+      market: UM_FUTURES
+      symbol: FILUSDC
+      beta: -1
+    leg2:
+      market: CM_FUTURES
+      symbol: FILUSD_PERP
+      beta: 1
+
+  - name: ARBUSDT_ARBUSDC
+    leg1:
+      market: UM_FUTURES
+      symbol: ARBUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: ARBUSDC
+      beta: 1
+
+  - name: NEOUSDC_NEOUSDT
+    leg1:
+      market: UM_FUTURES
+      symbol: NEOUSDC
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: NEOUSDT
+      beta: 1
+
+  - name: CRVUSDC_CRVUSDT
+    leg1:
+      market: UM_FUTURES
+      symbol: CRVUSDC
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: CRVUSDT
+      beta: 1
+
+  - name: ADAUSDT_ADAUSD_PERP
+    leg1:
+      market: UM_FUTURES
+      symbol: ADAUSDT
+      beta: -1
+    leg2:
+      market: CM_FUTURES
+      symbol: ADAUSD_PERP
+      beta: 1
+
+  - name: XRPUSDC_XRPUSD_PERP
+    leg1:
+      market: UM_FUTURES
+      symbol: XRPUSDC
+      beta: -1
+    leg2:
+      market: CM_FUTURES
+      symbol: XRPUSD_PERP
+      beta: 1
+
+  - name: LTCUSDC_LTCUSDT
+    leg1:
+      market: UM_FUTURES
+      symbol: LTCUSDC
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: LTCUSDT
+      beta: 1
+
+  - name: LTCUSDC_LTCUSD_PERP
+    leg1:
+      market: UM_FUTURES
+      symbol: LTCUSDC
+      beta: -1
+    leg2:
+      market: CM_FUTURES
+      symbol: LTCUSD_PERP
+      beta: 1
+
+  - name: ENSUSDT_ENSUSD_PERP
+    leg1:
+      market: UM_FUTURES
+      symbol: ENSUSDT
+      beta: -1
+    leg2:
+      market: CM_FUTURES
+      symbol: ENSUSD_PERP
+      beta: 1
+
+  - name: ETHUSDT_ETHUSDC
+    leg1:
+      market: UM_FUTURES
+      symbol: ETHUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: ETHUSDC
+      beta: 1
+
+  - name: WLDUSDT_WLDUSDC
+    leg1:
+      market: UM_FUTURES
+      symbol: WLDUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: WLDUSDC
+      beta: 1
+
+  - name: ETHFIUSDT_ETHFIUSDC
+    leg1:
+      market: UM_FUTURES
+      symbol: ETHFIUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: ETHFIUSDC
+      beta: 1
+
+  - name: BTCUSDT_BTCUSDC
+    leg1:
+      market: UM_FUTURES
+      symbol: BTCUSDT
+      beta: -1
+    leg2:
+      market: UM_FUTURES
+      symbol: BTCUSDC
+      beta: 1
+
+  - name: AAVEUSDT_AAVEUSD_PERP
+    leg1:
+      market: UM_FUTURES
+      symbol: AAVEUSDT
+      beta: -1
+    leg2:
+      market: CM_FUTURES
+      symbol: AAVEUSD_PERP
+      beta: 1
+
+orderbooks:
+  - market: SPOT
+    symbol: BTCUSDT
+
+  - market: SPOT
+    symbol: ETHUSDT

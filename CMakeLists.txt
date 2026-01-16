@@ -1,69 +1,49 @@
-cmake_minimum_required(VERSION 3.20)
-project(orderbook)
+cmake_minimum_required(VERSION 3.28)
+project(binance_tui LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# For MacOS.
 if(POLICY CMP0167)
     cmake_policy(SET CMP0167 NEW)
 endif()
 
 include(FetchContent)
 
-find_package(nlohmann_json 3.11.0)
-if(NOT nlohmann_json_FOUND)
-    message(STATUS "nlohmann/json not found locally, fetching from source.")
-    FetchContent_Declare(
-        json
-        URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
-        URL_HASH SHA256=d6c65aca6b1ed68e7a182f4757257b107ae403032760ed6ef121c9d55e81757d
-    )
-    FetchContent_MakeAvailable(json)
-endif()
+# Include FTXUI.
+FetchContent_Declare(
+  ftxui
+  GIT_REPOSITORY https://github.com/ArthurSonzogni/FTXUI.git
+  GIT_TAG v6.1.9
+)
+FetchContent_MakeAvailable(ftxui)
 
-find_package(Boost 1.70)
-if(NOT Boost_FOUND)
-    message(STATUS "Boost not found locally, fetching from source.")
-    FetchContent_Declare(
-        Boost
-        URL https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.gz
-        URL_HASH SHA256=b62bd839ea6c28265af9a1f68393eda37fab3611425d3b28882d8e424535ec9d
-    )
-    set(BOOST_INCLUDE_LIBRARIES system asio beast)
-    set(BOOST_ENABLE_CMAKE ON)
-    FetchContent_MakeAvailable(Boost)
-    
-    set(Boost_FOUND TRUE)
-    set(BOOST_FETCHED TRUE)
-endif()
-
+find_package(Boost REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
+find_package(nlohmann_json REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
-set(SOURCES
-    src/main.cpp
-    src/orderbook.cpp
-    src/wsclient.cpp
-    src/httpclient.cpp
+add_library(binance_tui INTERFACE)
+target_include_directories(binance_tui INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(binance_tui INTERFACE
+  Threads::Threads
+  Boost::headers
+  OpenSSL::SSL
+  OpenSSL::Crypto
+  Threads::Threads
+  nlohmann_json::nlohmann_json
+  yaml-cpp::yaml-cpp
+  ftxui::screen
+  ftxui::dom
+  ftxui::component
 )
 
-add_executable(orderbook ${SOURCES})
-
-target_link_libraries(orderbook
-    nlohmann_json::nlohmann_json
-)
-
-if(BOOST_FETCHED)
-    target_link_libraries(orderbook
-        Boost::system
-        Boost::asio
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${OPENSSL_LIBRARIES}
-    )
-else()
-    target_link_libraries(orderbook
-        Boost::boost
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${OPENSSL_LIBRARIES}
-    )
-endif()
+add_executable(main src/main.cpp)
+target_link_libraries(main binance_tui pthread)
+target_compile_options(main PRIVATE -Wall -Wextra -Wpedantic)

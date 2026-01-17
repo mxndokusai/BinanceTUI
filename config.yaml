@@ -1,7 +1,8 @@
 refresh_rate_ms: 100
 display_tui: true
 # spreads | orderbook
-view_mode: spreads
+# view_mode: spreads
+view_mode: orderbook
 
 spreads:
   - name: DOGEUSDT_DOGEUSD_PERP

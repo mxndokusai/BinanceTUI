@@ -25,6 +25,7 @@ find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(spdlog REQUIRED)
 
 add_library(binance_tui INTERFACE)
 target_include_directories(binance_tui INTERFACE
@@ -42,6 +43,8 @@ target_link_libraries(binance_tui INTERFACE
   ftxui::screen
   ftxui::dom
   ftxui::component
+  spdlog::spdlog
+  # spdlog::spdlog_header_only
 )
 
 add_executable(main src/main.cpp)

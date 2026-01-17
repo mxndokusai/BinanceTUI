@@ -9,6 +9,7 @@
 #include <ftxui/dom/table.hpp>
 #include <iomanip>
 #include <iostream>
+#include <spdlog/spdlog.h>
 #include <sstream>
 #include <thread>
 
@@ -289,6 +290,7 @@ void run_orderbook_tui(DataManager &manager,
     auto table = Table(rows);
     table.SelectAll().Border(LIGHT);
     table.SelectRow(0).Decorate(bold);
+    table.SelectRows(1, -1).SeparatorVertical(LIGHT);
     table.SelectRows(0, 0).BorderBottom(HEAVY);
     // Colour asks red.
     for (size_t i = 1; i <= snapshot.asks.size(); ++i)
@@ -343,8 +345,8 @@ int main(int argc, char **argv) {
   try {
     Config config = load_config(config_path);
 
-    std::cout << "Loaded " << config.spreads.size() << " spreads and "
-              << config.orderbooks.size() << " orderbooks\n";
+    spdlog::info("Loaded {} spreads and {} orderbooks", config.spreads.size(),
+                 config.orderbooks.size());
 
     // Sort spreads.
     std::sort(config.spreads.begin(), config.spreads.end(),
@@ -362,10 +364,9 @@ int main(int argc, char **argv) {
     std::this_thread::sleep_for(std::chrono::seconds(2));
 
     if (!config.display_tui) {
-      std::cout << "Running in non-TUI mode. Press Ctrl+C to exit.\n";
-      while (true) {
+      spdlog::info("Running in non-TUI mode, press Ctrl+C to exit");
+      while (true)
         std::this_thread::sleep_for(std::chrono::seconds(60));
-      }
     } else {
       if (config.view_mode == "orderbook" &&
           !manager.get_orderbook_configs().empty()) {

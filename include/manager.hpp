@@ -7,6 +7,7 @@
 #include <boost/asio/ssl/context.hpp>
 #include <cctype>
 #include <memory>
+#include <spdlog/spdlog.h>
 #include <thread>
 #include <vector>
 
@@ -56,11 +57,10 @@ public:
       if (!spread_symbols_by_market_[i].empty() ||
           !orderbook_symbols_by_market_[i].empty()) {
         io_threads_[i] = std::thread([this, i]() {
-          std::cout << "Started I/O thread for market " << i << " ("
-                    << market_type_to_string(static_cast<MarketType>(i))
-                    << ")\n";
+          spdlog::info("Started I/O thread for market {} ({})", i,
+                       market_type_to_string(static_cast<MarketType>(i)));
           ioc_array_[i].run();
-          std::cout << "I/O thread for market " << i << " finished\n";
+          spdlog::info("I/O thread for market {} finished", i);
         });
       }
     }

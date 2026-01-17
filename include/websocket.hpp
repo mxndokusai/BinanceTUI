@@ -11,6 +11,7 @@
 #include <iostream>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 
 namespace beast = boost::beast;
 namespace websocket = beast::websocket;
@@ -141,11 +142,10 @@ private:
       return fail(ec, "handshake");
     if (!running_)
       return;
-    std::cout << "[" << market_id_ << "] Connected with " << symbols_.size()
-              << " symbols ("
-              << (stream_type_ == StreamType::BOOK_TICKER ? "bookTicker"
-                                                          : "depth")
-              << ")\n";
+
+    spdlog::info(
+        "[{}] Connected with {} symbols ({})", market_id_, symbols_.size(),
+        (stream_type_ == StreamType::BOOK_TICKER ? "bookTicker" : "depth"));
     do_read();
   }
 

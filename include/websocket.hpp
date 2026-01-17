@@ -24,8 +24,8 @@ class WebSocketClient : public std::enable_shared_from_this<WebSocketClient> {
   using BookTickerCallback =
       std::function<void(const std::string &, const BookTicker &)>;
   using DepthCallback =
-      std::function<void(const std::string &, const std::vector<PriceLevel> &,
-                         const std::vector<PriceLevel> &)>;
+      std::function<void(const std::string &, const DepthUpdate &)>;
+
   net::io_context &ioc_;
   ssl::context &ssl_ctx_;
   tcp::resolver resolver_;
@@ -228,34 +228,39 @@ private:
 
       } else if (stream_type_ == StreamType::DEPTH) {
         // Parse depth update.
-        if (!data_obj.contains("b") || !data_obj.contains("a")) {
+        if (!data_obj.contains("b") || !data_obj.contains("a") ||
+            !data_obj.contains("U") || !data_obj.contains("u")) {
           std::cerr << "[" << market_id_
-                    << "] Missing bids/asks in depth message\n";
+                    << "] Missing required fields in depth message\n";
           do_read();
           return;
         }
 
-        std::vector<PriceLevel> bids, asks;
+        DepthUpdate update;
+        update.first_update_id = data_obj["U"].get<uint64_t>();
+        update.last_update_id = data_obj["u"].get<uint64_t>();
+
         // Parse bids.
         for (const auto &bid : data_obj["b"]) {
           if (bid.is_array() && bid.size() >= 2) {
             PriceLevel level;
             level.price = bid[0].get<std::string>();
             level.quantity = bid[1].get<std::string>();
-            bids.push_back(level);
+            update.bids.push_back(level);
           }
         }
+
         // Parse asks.
         for (const auto &ask : data_obj["a"]) {
           if (ask.is_array() && ask.size() >= 2) {
             PriceLevel level;
             level.price = ask[0].get<std::string>();
             level.quantity = ask[1].get<std::string>();
-            asks.push_back(level);
+            update.asks.push_back(level);
           }
         }
         if (depth_callback_)
-          depth_callback_(symbol, bids, asks);
+          depth_callback_(symbol, update);
       }
     } catch (const std::exception &e) {
       std::cerr << "[" << market_id_ << "] Parse error: " << e.what() << "\n";

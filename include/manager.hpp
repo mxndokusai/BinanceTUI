@@ -1,5 +1,6 @@
 #pragma once
 #include "constants.hpp"
+#include "http_client.hpp"
 #include "websocket.hpp"
 #include <array>
 #include <boost/asio/io_context.hpp>
@@ -13,7 +14,7 @@ class DataManager {
   std::array<net::io_context, NUM_MARKETS> ioc_array_;
   ssl::context ssl_ctx_{ssl::context::tlsv12_client};
 
-  // Spread.
+  // Spreads tracking.
   std::vector<Spread> spreads_;
   std::unordered_map<std::string, std::shared_ptr<Leg>> leg_registry_;
   std::array<std::shared_ptr<WebSocketClient>, NUM_MARKETS> spread_clients_;
@@ -21,7 +22,7 @@ class DataManager {
   std::array<std::unordered_map<std::string, std::shared_ptr<Leg>>, NUM_MARKETS>
       spread_callback_maps_;
 
-  // Orderbook.
+  // Orderbook tracking.
   std::vector<OrderBookConfig> orderbook_configs_;
   std::unordered_map<std::string, std::shared_ptr<Leg>> orderbook_registry_;
   std::array<std::shared_ptr<WebSocketClient>, NUM_MARKETS> orderbook_clients_;
@@ -42,10 +43,14 @@ public:
   }
 
   void start() {
-    if (!spreads_.empty())
+    // Setup spreads.
+    if (!spreads_.empty()) {
       setup_spreads();
-    if (!orderbook_configs_.empty())
+    }
+    // Setup orderbooks.
+    if (!orderbook_configs_.empty()) {
       setup_orderbooks();
+    }
     // Start I/O threads for each market that has connections.
     for (size_t i = 0; i < NUM_MARKETS; ++i) {
       if (!spread_symbols_by_market_[i].empty() ||
@@ -208,17 +213,70 @@ private:
         StreamType::DEPTH,
         // BookTicker callback (unused for orderbooks).
         nullptr,
-        // Depth callback.
-        [this, market_idx](const std::string &symbol,
-                           const std::vector<PriceLevel> &bids,
-                           const std::vector<PriceLevel> &asks) {
+        // Depth callback that implements Binance's sync algorithm.
+        [this, market_idx, market](const std::string &symbol,
+                                   const DepthUpdate &update) {
           auto it = orderbook_callback_maps_[market_idx].find(symbol);
-          if (it != orderbook_callback_maps_[market_idx].end() &&
-              it->second->orderbook) {
-            it->second->orderbook->update_from_depth(bids, asks);
+          if (it == orderbook_callback_maps_[market_idx].end() ||
+              !it->second->orderbook) {
+            return;
+          }
+
+          auto leg = it->second;
+          auto &orderbook = leg->orderbook;
+          auto state = orderbook->get_state();
+
+          if (state == OrderBook::State::UNINITIALISED) {
+            // Start buffering and fetch snapshot in background thread.
+            {
+              std::lock_guard<std::mutex> lock(leg->buffer_mutex);
+              leg->buffered_updates.push_back(update);
+            }
+
+            // Fetch snapshot only once.
+            std::thread([leg, market, symbol]() {
+              uint64_t last_update_id;
+              std::vector<PriceLevel> bids, asks;
+
+              std::string upper_symbol = symbol;
+              for (char &c : upper_symbol)
+                c = std::toupper(static_cast<unsigned char>(c));
+
+              if (fetch_orderbook_snapshot(market, upper_symbol, last_update_id,
+                                           bids, asks)) {
+                leg->orderbook->init_from_snapshot(last_update_id, bids, asks);
+
+                // Process buffered events.
+                std::vector<DepthUpdate> buffered_copy;
+                {
+                  std::lock_guard<std::mutex> lock(leg->buffer_mutex);
+                  buffered_copy = std::move(leg->buffered_updates);
+                  leg->buffered_updates.clear();
+                }
+
+                if (!leg->orderbook->process_buffered_events(buffered_copy)) {
+                  std::cerr << "Failed to sync orderbook for " << symbol
+                            << ", will retry\n";
+                }
+              } else {
+                std::cerr << "Failed to fetch snapshot for " << symbol << "\n";
+              }
+            }).detach();
+
+          } else if (state == OrderBook::State::BUFFERING) {
+            // Waiting for snapshot processing.
+            std::lock_guard<std::mutex> lock(leg->buffer_mutex);
+            leg->buffered_updates.push_back(update);
+
+          } else if (state == OrderBook::State::SYNCHRONISED) {
+            // Normal operation, apply update.
+            if (!orderbook->apply_update(update)) {
+              std::cerr << "Orderbook out of sync for " << symbol
+                        << ", reinitialising\n";
+            }
           }
         },
-        market_idx + 100);
+        market_idx + 100); // Offset ID to distinguish from spread clients.
 
     orderbook_clients_[market_idx] = client;
     client->run();

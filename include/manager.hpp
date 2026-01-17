@@ -9,42 +9,47 @@
 #include <thread>
 #include <vector>
 
-class SpreadManager {
+class DataManager {
   std::array<net::io_context, NUM_MARKETS> ioc_array_;
   ssl::context ssl_ctx_{ssl::context::tlsv12_client};
+
+  // Spread.
   std::vector<Spread> spreads_;
   std::unordered_map<std::string, std::shared_ptr<Leg>> leg_registry_;
-  std::array<std::shared_ptr<WebSocketClient>, NUM_MARKETS> clients_;
-  std::array<std::vector<std::string>, NUM_MARKETS> symbols_by_market_;
+  std::array<std::shared_ptr<WebSocketClient>, NUM_MARKETS> spread_clients_;
+  std::array<std::vector<std::string>, NUM_MARKETS> spread_symbols_by_market_;
   std::array<std::unordered_map<std::string, std::shared_ptr<Leg>>, NUM_MARKETS>
-      callback_maps_;
+      spread_callback_maps_;
+
+  // Orderbook.
+  std::vector<OrderBookConfig> orderbook_configs_;
+  std::unordered_map<std::string, std::shared_ptr<Leg>> orderbook_registry_;
+  std::array<std::shared_ptr<WebSocketClient>, NUM_MARKETS> orderbook_clients_;
+  std::array<std::vector<std::string>, NUM_MARKETS>
+      orderbook_symbols_by_market_;
+  std::array<std::unordered_map<std::string, std::shared_ptr<Leg>>, NUM_MARKETS>
+      orderbook_callback_maps_;
+
   std::array<std::thread, NUM_MARKETS> io_threads_;
 
 public:
-  SpreadManager(std::vector<Spread> spreads) : spreads_(std::move(spreads)) {
+  DataManager(std::vector<Spread> spreads,
+              std::vector<OrderBookConfig> orderbooks)
+      : spreads_(std::move(spreads)),
+        orderbook_configs_(std::move(orderbooks)) {
     ssl_ctx_.set_default_verify_paths();
     ssl_ctx_.set_verify_mode(ssl::verify_none);
   }
 
   void start() {
-    for (auto &spread : spreads_) {
-      spread.leg1.ptr =
-          get_or_create_leg(spread.leg1.market, spread.leg1.symbol);
-      spread.leg2.ptr =
-          get_or_create_leg(spread.leg2.market, spread.leg2.symbol);
-    }
-    // Repeated string allocation on the heap and construction was costly.
-    // So construct a map once at initialisation so we can avoid that.
-    for (const auto &[key, leg] : leg_registry_) {
-      size_t market_idx = market_to_index(leg->market);
-      std::string lower_symbol = to_lower(leg->symbol);
-      callback_maps_[market_idx][lower_symbol] = leg;
-    }
-    // One ws per market.
+    if (!spreads_.empty())
+      setup_spreads();
+    if (!orderbook_configs_.empty())
+      setup_orderbooks();
+    // Start I/O threads for each market that has connections.
     for (size_t i = 0; i < NUM_MARKETS; ++i) {
-      if (!symbols_by_market_[i].empty()) {
-        create_combined_stream(static_cast<MarketType>(i),
-                               symbols_by_market_[i]);
+      if (!spread_symbols_by_market_[i].empty() ||
+          !orderbook_symbols_by_market_[i].empty()) {
         io_threads_[i] = std::thread([this, i]() {
           std::cout << "Started I/O thread for market " << i << " ("
                     << market_type_to_string(static_cast<MarketType>(i))
@@ -57,7 +62,10 @@ public:
   }
 
   void stop() {
-    for (auto &client : clients_)
+    for (auto &client : spread_clients_)
+      if (client)
+        client->stop();
+    for (auto &client : orderbook_clients_)
       if (client)
         client->stop();
     for (size_t i = 0; i < NUM_MARKETS; ++i)
@@ -69,44 +77,150 @@ public:
 
   const std::vector<Spread> &get_spreads() const { return spreads_; }
 
-  ~SpreadManager() { stop(); }
+  const std::vector<OrderBookConfig> &get_orderbook_configs() const {
+    return orderbook_configs_;
+  }
+
+  std::shared_ptr<OrderBook> get_orderbook(const std::string &market_symbol) {
+    auto it = orderbook_registry_.find(market_symbol);
+    if (it != orderbook_registry_.end() && it->second->orderbook) {
+      return it->second->orderbook;
+    }
+    return nullptr;
+  }
+
+  ~DataManager() { stop(); }
 
 private:
-  std::shared_ptr<Leg> get_or_create_leg(MarketType market,
-                                         const std::string &symbol) {
-    std::string key;
-    key.reserve(market_type_to_string(market).size() + 1 + symbol.size());
-    key.append(market_type_to_string(market));
-    key.push_back('_');
-    key.append(symbol);
+  void setup_spreads() {
+    // Create legs for spreads.
+    for (auto &spread : spreads_) {
+      spread.leg1.ptr =
+          get_or_create_spread_leg(spread.leg1.market, spread.leg1.symbol);
+      spread.leg2.ptr =
+          get_or_create_spread_leg(spread.leg2.market, spread.leg2.symbol);
+    }
+
+    // Build callback maps.
+    for (const auto &[key, leg] : leg_registry_) {
+      size_t market_idx = market_to_index(leg->market);
+      std::string lower_symbol = to_lower(leg->symbol);
+      spread_callback_maps_[market_idx][lower_symbol] = leg;
+    }
+
+    // Create WebSocket connections for spreads (bookTicker)
+    for (size_t i = 0; i < NUM_MARKETS; ++i) {
+      if (!spread_symbols_by_market_[i].empty()) {
+        create_spread_stream(static_cast<MarketType>(i),
+                             spread_symbols_by_market_[i]);
+      }
+    }
+  }
+
+  void setup_orderbooks() {
+    // Create legs with orderbooks.
+    for (const auto &config : orderbook_configs_) {
+      auto leg = get_or_create_orderbook_leg(config.market, config.symbol);
+      leg->orderbook = std::make_shared<OrderBook>();
+    }
+
+    // Build callback maps.
+    for (const auto &[key, leg] : orderbook_registry_) {
+      size_t market_idx = market_to_index(leg->market);
+      std::string lower_symbol = to_lower(leg->symbol);
+      orderbook_callback_maps_[market_idx][lower_symbol] = leg;
+    }
+
+    // Create WebSocket connections for orderbooks (depth).
+    for (size_t i = 0; i < NUM_MARKETS; ++i) {
+      if (!orderbook_symbols_by_market_[i].empty()) {
+        create_orderbook_stream(static_cast<MarketType>(i),
+                                orderbook_symbols_by_market_[i]);
+      }
+    }
+  }
+
+  std::shared_ptr<Leg> get_or_create_spread_leg(MarketType market,
+                                                const std::string &symbol) {
+    std::string key = make_key(market, symbol);
     auto it = leg_registry_.find(key);
     if (it != leg_registry_.end())
       return it->second;
+
     auto leg = std::make_shared<Leg>();
     leg->market = market;
     leg->symbol = symbol;
     leg_registry_[key] = leg;
+
     size_t market_idx = market_to_index(market);
-    symbols_by_market_[market_idx].push_back(to_lower(symbol));
+    spread_symbols_by_market_[market_idx].push_back(to_lower(symbol));
     return leg;
   }
 
-  void create_combined_stream(MarketType market,
-                              const std::vector<std::string> &symbols) {
+  std::shared_ptr<Leg> get_or_create_orderbook_leg(MarketType market,
+                                                   const std::string &symbol) {
+    std::string key = make_key(market, symbol);
+    auto it = orderbook_registry_.find(key);
+    if (it != orderbook_registry_.end())
+      return it->second;
+
+    auto leg = std::make_shared<Leg>();
+    leg->market = market;
+    leg->symbol = symbol;
+    orderbook_registry_[key] = leg;
+
+    size_t market_idx = market_to_index(market);
+    orderbook_symbols_by_market_[market_idx].push_back(to_lower(symbol));
+    return leg;
+  }
+
+  void create_spread_stream(MarketType market,
+                            const std::vector<std::string> &symbols) {
     auto [host, port] = parse_ws_url(get_ws_url(market));
     size_t market_idx = market_to_index(market);
+
     auto client = std::make_shared<WebSocketClient>(
         ioc_array_[market_idx], ssl_ctx_, host, port, symbols,
+        StreamType::BOOK_TICKER,
+        // BookTicker callback.
         [this, market_idx](const std::string &symbol,
                            const BookTicker &ticker) {
-          auto it = callback_maps_[market_idx].find(symbol);
-          if (it != callback_maps_[market_idx].end()) {
+          auto it = spread_callback_maps_[market_idx].find(symbol);
+          if (it != spread_callback_maps_[market_idx].end()) {
             it->second->price_data.update(ticker.bid_price, ticker.ask_price,
                                           ticker.timestamp);
           }
         },
-        market_idx);
-    clients_[market_idx] = client;
+        // Depth callback (unused for spreads).
+        nullptr, market_idx);
+
+    spread_clients_[market_idx] = client;
+    client->run();
+  }
+
+  void create_orderbook_stream(MarketType market,
+                               const std::vector<std::string> &symbols) {
+    auto [host, port] = parse_ws_url(get_ws_url(market));
+    size_t market_idx = market_to_index(market);
+
+    auto client = std::make_shared<WebSocketClient>(
+        ioc_array_[market_idx], ssl_ctx_, host, port, symbols,
+        StreamType::DEPTH,
+        // BookTicker callback (unused for orderbooks).
+        nullptr,
+        // Depth callback.
+        [this, market_idx](const std::string &symbol,
+                           const std::vector<PriceLevel> &bids,
+                           const std::vector<PriceLevel> &asks) {
+          auto it = orderbook_callback_maps_[market_idx].find(symbol);
+          if (it != orderbook_callback_maps_[market_idx].end() &&
+              it->second->orderbook) {
+            it->second->orderbook->update_from_depth(bids, asks);
+          }
+        },
+        market_idx + 100);
+
+    orderbook_clients_[market_idx] = client;
     client->run();
   }
 
@@ -116,10 +230,18 @@ private:
             std::string(url.substr(colon + 1))};
   }
 
-  // Note this should not take reference, since this is passed as a key.
   std::string to_lower(std::string s) {
     for (char &c : s)
       c = std::tolower(static_cast<unsigned char>(c));
     return s;
+  }
+
+  std::string make_key(MarketType market, const std::string &symbol) {
+    std::string key;
+    key.reserve(market_type_to_string(market).size() + 1 + symbol.size());
+    key.append(market_type_to_string(market));
+    key.push_back('_');
+    key.append(symbol);
+    return key;
   }
 };
